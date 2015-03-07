@@ -42,36 +42,8 @@ static void elro_fa20rfCreateMessage(int unitcode, int state) {
 }
 
 static void elro_fa20rfParseBinary(void) {
+	int x = 0; 
 
-	/*int i = 0, x = 0;
-	int state = -1, unitcode = -1;
-	*/
-	/*
-	for(i=0;i<elro_fa20rf->rawlen;i+=2) {
-		elro_fa20rf->binary[x++] = elro_fa20rf->code[i];
-	}
-	*/
-	
-	/*
-	for(x=0; x<elro_fa20rf->rawlen; x+=2) {
-		if(elro_fa20rf->code[x+1] == 1) { 
-			elro_fa20rf->binary[x/2]=1; 
- 		} else { 
-			elro_fa20rf->binary[x/2]=0; 
- 		}
- 	}
-	
-	unitcode = binToDecRev(elro_fa20rf->binary, 2, 22);
-	state = binToDecRev(elro_fa20rf->binary[23]);
-	*/
-	
-	/*int unitcode = binToDec(elro_fa20rf->binary, 0, 23);
-	int state = elro_fa20rf->binary[24];
-	*/
-int x = 0; 
-
- 
- 	/* Convert the one's and zero's into binary */ 
  	for(x=0; x<elro_fa20rf->rawlen; x+=2) { 
  		if(elro_fa20rf->code[x+1] == 1) { 
  			elro_fa20rf->binary[x/2]=1; 
@@ -79,7 +51,6 @@ int x = 0;
  			elro_fa20rf->binary[x/2]=0; 
  		} 
  	} 
- 
  
  	int unitcode = binToDec(elro_fa20rf->binary, 0, 23); 
  	int state = elro_fa20rf->binary[24]; 	
@@ -149,9 +120,9 @@ static int elro_fa20rfCreateCode(JsonNode *code) {
 	if(json_find_number(code, "unitcode", &itmp) == 0)
 		unitcode = (int)round(itmp);
 	if(json_find_number(code, "closed", &itmp) == 0)
-		state=1;
-	else if(json_find_number(code, "opened", &itmp) == 0)
 		state=0;
+	else if(json_find_number(code, "opened", &itmp) == 0)
+		state=1;
 
 	if(unitcode == -1 || state == -1) {
 		logprintf(LOG_ERR, "elro_fa20rf: insufficient number of arguments");
@@ -205,7 +176,7 @@ void elro_fa20rfInit(void) {
 #if defined(MODULE) && !defined(_WIN32)
 void compatibility(struct module_t *module) {
 	module->name = "elro_fa20rf";
-	module->version = "0.2";
+	module->version = "0.3";
 	module->reqversion = "6.0";
 	module->reqcommit = "187";
 }
