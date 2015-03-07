@@ -115,16 +115,17 @@ static void elro_fa20rfCreateHeader(void) {
 }
 
 static void elro_fa20rfCreateUnitCode(int unitcode) {
-	int binary[255];
+	int binary[1024];
 	int length = 0;
 	int i=0, x=0;
 
+	x = 46;
 	length = decToBin(unitcode, binary);
-	for(i=0;i<=length;i++) {
-		if(binary[i]==1) {
-			x=i*2;
-			elro_fa20rfCreateHigh(2+x, 2+x+1);
+	for(i=length;i>=0;i--) {
+		if(binary[i] == 1) {
+			elro_fa20rfCreateHigh(x, x+1);
 		}
+	x = x-2;
 	}
 }
 
