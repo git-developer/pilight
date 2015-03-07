@@ -43,6 +43,16 @@ static void logilinkCreateMessage(int systemcode, int unitcode, int state) {
 }
 
 static void logilinkParseBinary(void) {
+	int x = 0; 
+
+ 	for(x=0; x<logilink->rawlen; x+=2) { 
+ 		if(logilink->code[x+1] == 1) { 
+ 			logilink->binary[x/2]=1; 
+ 		} else { 
+ 			logilink->binary[x/2]=0; 
+ 		} 
+ 	} 
+	
 	int systemcode = binToDec(logilink->binary, 0, 19);
 	int unitcode = binToDec(logilink->binary, 21, 23);
 	int state = logilink->binary[20];
@@ -61,14 +71,14 @@ static void logilinkCreateLow(int s, int e) {
 static void logilinkCreateHigh(int s, int e) {
 	int i;
 
-	for(i=s;i<=e;i+=1) {
+	for(i=s;i<=e;i+=2) {
 		logilink->raw[i]=(logilink->pulse*logilink->plslen->length);
 		logilink->raw[i+1]=(logilink->plslen->length);
 	}
 }
 
 static void logilinkClearCode(void) {
-	logilinkCreateLow(0,47);
+	logilinkCreateLow(0, logilink->rawlen-2);
 }
 
 static void logilinkCreateSystemCode(int systemcode) {
@@ -76,26 +86,41 @@ static void logilinkCreateSystemCode(int systemcode) {
 	int length = 0;
 	int i=0, x=0;
 
-	length = decToBinRev(systemcode, binary);
-	for(i=0;i<=length;i++) {
-		if(binary[i]==1) {
-			x=i*2;
+	x = 40;
+	length = decToBin(systemcode, binary);
+	for(i=length;i>=0;i--) {
+		if(binary[i] == 1) {
 			logilinkCreateHigh(x, x+1);
+		} else if(binary[i] == 0) {
+			logilinkCreateLow(x, x+1);
 		}
+	x = x-2;
 	}
 }
 
 static void logilinkCreateUnitCode(int unitcode) {
-	int binary[255];
-	int length = 0;
-	int i=0, x=0;
-
-	length = decToBinRev(unitcode, binary);
-	for(i=0;i<=length;i++) {
-		if(binary[i]==1) {
-			x=i*2;
-			logilinkCreateHigh(42+x, 42+x+1);
-		}
+		switch (unitcode) {
+		case 0:
+			logilinkCreateHigh(42, 47);	// Buttton 1
+		break;
+		case 1:
+			logilinkCreateLow(42, 43); // Button 2
+			logilinkCreateHigh(44, 47);	
+		break;
+		case 2:
+			logilinkCreateHigh(42, 43); // Button 3
+			logilinkCreateLow(44, 45);
+			logilinkCreateHigh(46, 47);
+		break;
+		case 4:
+			logilinkCreateHigh(42, 45); // Button 4
+			logilinkCreateLow(46, 47);
+		break;
+		case 7:
+			logilinkCreateLow(42, 47);	// Button ALL
+		break;
+		default:
+		break;
 	}
 }
 
@@ -103,7 +128,7 @@ static void logilinkCreateState(int state) {
 	if(state == 1) {
 		logilinkCreateHigh(40, 41);
 	} else {
-		logilinkCreateHigh(41, 40);
+		logilinkCreateLow(40, 41);
 	}
 }
 
@@ -130,10 +155,10 @@ static int logilinkCreateCode(JsonNode *code) {
 	if(systemcode == -1 || unitcode == -1 || state == -1) {
 		logprintf(LOG_ERR, "logilink: insufficient number of arguments");
 		return EXIT_FAILURE;
-	} else if(systemcode > 31 || systemcode < 0) {
+	} else if(systemcode > 2097151 || systemcode < 0) {
 		logprintf(LOG_ERR, "logilink: invalid systemcode range");
 		return EXIT_FAILURE;
-	} else if(unitcode > 31 || unitcode < 0) {
+	} else if(unitcode > 7 || unitcode < 0) {
 		logprintf(LOG_ERR, "logilink: invalid unitcode range");
 		return EXIT_FAILURE;
 	} else {
