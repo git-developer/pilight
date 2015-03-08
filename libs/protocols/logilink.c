@@ -193,8 +193,7 @@ void logilinkInit(void) {
 	logilink->pulse = 3;
 	logilink->rawlen = 50;
 	logilink->binlen = 12;
-	logilink->lsb = 3;
-
+	
 	options_add(&logilink->options, 's', "systemcode", OPTION_HAS_VALUE, DEVICES_ID, JSON_NUMBER, NULL, "^(3[012]?|[012][0-9]|[0-9]{1})$");
 	options_add(&logilink->options, 'u', "unitcode", OPTION_HAS_VALUE, DEVICES_ID, JSON_NUMBER, NULL, "^(3[012]?|[012][0-9]|[0-9]{1})$");
 	options_add(&logilink->options, 't', "on", OPTION_NO_VALUE, DEVICES_STATE, JSON_STRING, NULL, NULL);
