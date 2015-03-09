@@ -42,20 +42,17 @@ static void logilinkCreateMessage(int systemcode, int unitcode, int state) {
 	}
 }
 
-static void logilinkParseBinary(void) {
-	int x = 0; 
+static void logilinkParseCode(void) {
+	int i = 0, x = 0;
+	int systemcode = 0, state = 0, unitcode = 0;
 
- 	for(x=0; x<logilink->rawlen; x+=2) { 
- 		if(logilink->code[x+1] == 1) { 
- 			logilink->binary[x/2]=1; 
- 		} else { 
- 			logilink->binary[x/2]=0; 
- 		} 
- 	} 
-	
-	int systemcode = binToDec(logilink->binary, 0, 19);
-	int unitcode = binToDec(logilink->binary, 21, 23);
-	int state = logilink->binary[20];
+	for(i=0;i<logilink->rawlen-1;i+=2) {
+		logilink->binary[x++] = logilink->code[i];
+	}
+	systemcode = binToDecRev(logilink->binary, 0, 19);
+	state = logilink->binary[20];
+	unitcode = binToDecRev(logilink->binary, 21, 23);
+
 	logilinkCreateMessage(systemcode, unitcode, state);
 }
 
@@ -87,7 +84,7 @@ static void logilinkCreateSystemCode(int systemcode) {
 	int i=0, x=0;
 
 	x = 40;
-	length = decToBin(systemcode, binary);
+	length = decToBinUl(systemcode, binary);
 	for(i=length;i>=0;i--) {
 		if(binary[i] == 1) {
 			logilinkCreateHigh(x, x+1);
@@ -100,24 +97,24 @@ static void logilinkCreateSystemCode(int systemcode) {
 
 static void logilinkCreateUnitCode(int unitcode) {
 		switch (unitcode) {
-		case 0:
-			logilinkCreateHigh(42, 47);	// Buttton 1
+		case 7:
+			logilinkCreateHigh(42, 47);	// Button 1
 		break;
-		case 1:
+		case 3:
 			logilinkCreateLow(42, 43); // Button 2
 			logilinkCreateHigh(44, 47);	
 		break;
-		case 2:
+		case 5:
 			logilinkCreateHigh(42, 43); // Button 3
 			logilinkCreateLow(44, 45);
 			logilinkCreateHigh(46, 47);
 		break;
-		case 4:
+		case 6:
 			logilinkCreateHigh(42, 45); // Button 4
 			logilinkCreateLow(46, 47);
 		break;
-		case 7:
-			logilinkCreateLow(42, 47);	// Button ALL
+		case 0:
+			logilinkCreateLow(42, 47);	// Button ALL OFF
 		break;
 		default:
 		break;
@@ -201,7 +198,7 @@ void logilinkInit(void) {
 
 	options_add(&logilink->options, 0, "readonly", OPTION_HAS_VALUE, GUI_SETTING, JSON_NUMBER, (void *)0, "^[10]{1}$");
 
-	logilink->parseBinary=&logilinkParseBinary;
+	logilink->parseCode=&logilinkParseCode;
 	logilink->createCode=&logilinkCreateCode;
 	logilink->printHelp=&logilinkPrintHelp;
 }
