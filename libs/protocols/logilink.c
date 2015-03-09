@@ -123,9 +123,9 @@ static void logilinkCreateUnitCode(int unitcode) {
 
 static void logilinkCreateState(int state) {
 	if(state == 1) {
-		logilinkCreateHigh(40, 41);
-	} else {
 		logilinkCreateLow(40, 41);
+	} else {
+		logilinkCreateHigh(40, 41);
 	}
 }
 
