@@ -31,6 +31,11 @@
 #include "gc.h"
 #include "elro_fa20rf.h"
 
+#define ELRO_FA20RF 782
+#define ELRO_FA20RF_SHORT 1564
+#define ELRO_FA20RF_LONG 2737
+#define ELRO_FA20RF_50 ELRO_FA20RF_SHORT+(ELRO_FA20RF_LONG-ELRO_FA20RF_SHORT)/2
+
 static void elro_fa20rfCreateMessage(int unitcode, int state) {
 	elro_fa20rf->message = json_mkobject();
 	json_append_member(elro_fa20rf->message, "unitcode", json_mknumber(unitcode, 0));
@@ -42,18 +47,27 @@ static void elro_fa20rfCreateMessage(int unitcode, int state) {
 }
 
 static void elro_fa20rfParseBinary(void) {
-	int x = 0; 
+	/*int x = 0; 
 
- 	for(x=0; x<elro_fa20rf->rawlen; x+=2) { 
+ 	for(x=2; x<elro_fa20rf->rawlen; x+=2) { 
  		if(elro_fa20rf->code[x+1] == 1) { 
  			elro_fa20rf->binary[x/2]=1; 
  		} else { 
  			elro_fa20rf->binary[x/2]=0; 
  		} 
- 	} 
+ 	} */
+	int x = 0;
+	
+	for(x=2; x<elro_fa20rf->rawlen-1; x+=2) {
+		if(elro_fa20rf->raw[x+1] > ELRO_FA20RF_50) {
+			elro_fa20rf->binary[x/2] = 1;
+		} else {
+			elro_fa20rf->binary[x/2] = 0;
+		}
+	}
  
- 	int unitcode = binToDec(elro_fa20rf->binary, 0, 23); 
- 	int state = elro_fa20rf->binary[24]; 	
+ 	int unitcode = binToDec(elro_fa20rf->binary, 0, 22); 
+ 	int state = elro_fa20rf->binary[23]; 	
 	elro_fa20rfCreateMessage(unitcode, state);
 }
 
