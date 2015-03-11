@@ -79,16 +79,17 @@ static void logilinkClearCode(void) {
 }
 
 static void logilinkCreateSystemCode(int systemcode) {
-	int binary[1024];
+	int binary[255];
 	int length=0;
 	int i=0, x=0;
 
-	x=40;
+	x=38;
 	length = decToBin(systemcode, binary);
 	for(i=length;i>=0;i--) {
-		if(binary[i] == 0) {
+		if(binary[i] == 1) {
 			logilinkCreateHigh(x, x+1);
 		}
+		
 		x=x-2;
 	}
 }
