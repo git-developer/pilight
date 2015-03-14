@@ -16,10 +16,10 @@
 	along with pilight. If not, see	<http://www.gnu.org/licenses/>
 */
 
-#ifndef _PROTOCOL_LOGILINK_H_
-#define _PROTOCOL_LOGILINK_H_
+#ifndef _PROTOCOL_LOGILINK_SWITCH_H_
+#define _PROTOCOL_LOGILINK_SWITCH_H_
 
-struct protocol_t *logilink;
-void logilinkInit(void);
+struct protocol_t *logilink_switch;
+void logilinkSwitchInit(void);
 
 #endif

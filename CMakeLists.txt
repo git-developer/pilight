@@ -658,9 +658,9 @@ if(${PROTOCOL_QUIGG_GT1000} MATCHES "OFF")
     list(REMOVE_ITEM pilight "${PROJECT_SOURCE_DIR}/libs/protocols/quigg_gt1000.c")
 endif()
 
-if(${PROTOCOL_LOGILINK} MATCHES "OFF")
-    list(REMOVE_ITEM pilight_headers "${PROJECT_SOURCE_DIR}/libs/protocols/logilink.h")
-    list(REMOVE_ITEM pilight "${PROJECT_SOURCE_DIR}/libs/protocols/logilink.c")
+if(${PROTOCOL_LOGILINK_SWITCH} MATCHES "OFF")
+    list(REMOVE_ITEM pilight_headers "${PROJECT_SOURCE_DIR}/libs/protocols/logilink_switch.h")
+    list(REMOVE_ITEM pilight "${PROJECT_SOURCE_DIR}/libs/protocols/logilink_switch.c")
 endif()
 
 if(${HARDWARE_433_GPIO} MATCHES "OFF")
