@@ -24,10 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "log.h"
+#include "../pilight/core/log.h"
+#include "../pilight/core/mem.h"
 #include "avrdude.h"
 #include "pgm.h"
-#include "mem.h"
 
 static int  pgm_default_2 (struct programmer_t *, AVRPART *);
 static int  pgm_default_3 (struct programmer_t * pgm, AVRPART * p, AVRMEM * mem,
@@ -38,8 +38,8 @@ static int  pgm_default_5 (struct programmer_t * pgm, AVRPART * p, AVRMEM * mem,
 static void pgm_default_6 (struct programmer_t *, const char *);
 
 
-static int pgm_default_open (struct programmer_t *pgm, char * name)
-{
+static int pgm_default_open (struct programmer_t *pgm, char * name) {
+	return 0;
 }
 
 static int  pgm_default_led (struct programmer_t * pgm, int value)
@@ -66,8 +66,8 @@ PROGRAMMER * pgm_new(void)
 
   pgm = (PROGRAMMER *)MALLOC(sizeof(*pgm));
   if (pgm == NULL) {
-    logprintf(LOG_ERR, "out of memory");
-    exit(1);
+    fprintf(stderr, "out of memory\n");
+    exit(EXIT_FAILURE);
   }
 
   memset(pgm, 0, sizeof(*pgm));
@@ -130,7 +130,7 @@ PROGRAMMER * pgm_new(void)
 
 static void pgm_default(void)
 {
-  logprintf(LOG_ERR, "AVR programmer operation not supported");
+  logprintf(LOG_NOTICE, "AVR programmer operation not supported");
 }
 
 
@@ -165,10 +165,10 @@ static void pgm_default_6 (struct programmer_t * pgm, const char * p)
 }
 
 
-void programmer_display(PROGRAMMER * pgm, const char * p)
-{
-  logprintf(LOG_INFO, "%sProgrammer Type : %s", p, pgm->type);
-  logprintf(LOG_INFO, "%sDescription     : %s", p, pgm->desc);
+// void programmer_display(PROGRAMMER * pgm, const char * p)
+// {
+  // logprintf(LOG_INFO, "%sProgrammer Type : %s", p, pgm->type);
+  // logprintf(LOG_INFO, "%sDescription     : %s", p, pgm->desc);
 
-  pgm->display(pgm, p);
-}
+  // pgm->display(pgm, p);
+// }

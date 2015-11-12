@@ -26,13 +26,13 @@
 #include <string.h>
 #include <time.h>
 
-#include "log.h"
+#include "../pilight/core/log.h"
+#include "../pilight/core/mem.h"
 #include "avrdude.h"
 #include "avr.h"
 #include "avrconfig.h"
 #include "fileio.h"
 #include "avrupd.h"
-#include "mem.h"
 
 AVRUPD * parse_op(char * s)
 {
@@ -44,8 +44,8 @@ AVRUPD * parse_op(char * s)
 
   upd = (AVRUPD *)MALLOC(sizeof(AVRUPD));
   if (upd == NULL) {
-	logprintf(LOG_ERR, "out of memory");
-    exit(1);
+		fprintf(stderr, "out of memory\n");
+    exit(EXIT_FAILURE);
   }
 
   i = 0;
@@ -58,8 +58,8 @@ AVRUPD * parse_op(char * s)
     upd->memtype = (char *)MALLOC(strlen("flash")+1);
     if (upd->memtype == NULL) {
       outofmem:
-	  logprintf(LOG_ERR, "out of memory");
-      exit(1);
+			fprintf(stderr, "out of memory\n");
+      exit(EXIT_FAILURE);
     }
     strcpy(upd->memtype, "flash");
     upd->op = DEVICE_WRITE;
@@ -73,8 +73,8 @@ AVRUPD * parse_op(char * s)
 
   upd->memtype = (char *)MALLOC(strlen(buf)+1);
   if (upd->memtype == NULL) {
-	logprintf(LOG_ERR, "out of memory");
-    exit(1);
+		fprintf(stderr, "out of memory\n");
+    exit(EXIT_FAILURE);
   }
   strcpy(upd->memtype, buf);
 
@@ -152,7 +152,7 @@ AVRUPD * parse_op(char * s)
   }
 
   if (upd->filename == NULL) {
-	logprintf(LOG_ERR, "out of memory");
+		fprintf(stderr, "out of memory\n");
     FREE(upd->memtype);
     FREE(upd);
     return NULL;
@@ -169,19 +169,19 @@ AVRUPD * dup_AVRUPD(AVRUPD * upd)
 
   u = (AVRUPD *)MALLOC(sizeof(AVRUPD));
   if(u == NULL) {
-		logprintf(LOG_ERR, "out of memory");
+		fprintf(stderr, "out of memory\n");
     exit(EXIT_FAILURE);
   }
 
   memcpy(u, upd, sizeof(AVRUPD));
 
   if((u->memtype = MALLOC(strlen(upd->memtype)+1)) == NULL) {
-		logprintf(LOG_ERR, "out of memory");
+		fprintf(stderr, "out of memory\n");
     exit(EXIT_FAILURE);
   }
 	strcpy(u->memtype, upd->memtype);
   if((u->filename = MALLOC(strlen(upd->filename)+1)) == NULL) {
-		logprintf(LOG_ERR, "out of memory");
+		fprintf(stderr, "out of memory\n");
     exit(EXIT_FAILURE);
 	}
 	strcpy(u->filename, upd->filename);
@@ -195,7 +195,7 @@ AVRUPD * new_AVRUPD(int op, char * memtype, int filefmt, char * filename)
 
   u = (AVRUPD *)MALLOC(sizeof(AVRUPD));
   if (u == NULL) {
-		logprintf(LOG_ERR, "out of memory");
+		fprintf(stderr, "out of memory\n");
     exit(EXIT_FAILURE);
 	}
 
@@ -219,11 +219,11 @@ int do_op(PROGRAMMER * pgm, struct avrpart * p, AVRUPD * upd, int nowrite,
 
   /* NEW */
   if(strcmp(upd->memtype, "flash") == 0) {
-	mem = p->flashmem;
+		mem = p->flashmem;
   } else if(strcmp(upd->memtype, "lfuse") == 0) {
-	mem = p->lfusemem;
+		mem = p->lfusemem;
   } else if(strcmp(upd->memtype, "hfuse") == 0) {
-	mem = p->hfusemem;
+		mem = p->hfusemem;
   }
 
   if (mem == NULL) {

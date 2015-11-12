@@ -25,11 +25,11 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "log.h"
+#include "../pilight/core/log.h"
+#include "../pilight/core/mem.h"
 #include "avrdude.h"
 #include "avrpart.h"
 #include "pindefs.h"
-#include "mem.h"
 
 /***
  *** Elementary functions dealing with OPCODE structures
@@ -41,8 +41,8 @@ OPCODE * avr_new_opcode(void)
 
   m = (OPCODE *)MALLOC(sizeof(*m));
   if (m == NULL) {
-    logprintf(LOG_ERR, "out of memory");
-    exit(1);
+    fprintf(stderr, "out of memory\n");
+    exit(EXIT_FAILURE);
   }
 
   memset(m, 0, sizeof(*m));
@@ -174,8 +174,8 @@ AVRMEM * avr_new_memtype(void)
 
   m = (AVRMEM *)MALLOC(sizeof(*m));
   if (m == NULL) {
-    logprintf(LOG_ERR, "out of memory");
-    exit(1);
+    fprintf(stderr, "out of memory\n");
+    exit(EXIT_FAILURE);
   }
 
   memset(m, 0, sizeof(*m));
@@ -194,10 +194,12 @@ AVRMEM * avr_dup_mem(AVRMEM * m)
 
   n->buf = (unsigned char *)MALLOC(n->size);
   if (n->buf == NULL) {
-    logprintf(LOG_ERR, "out of memory");
-    exit(1);
+    fprintf(stderr, "out of memory\n");
+    exit(EXIT_FAILURE);
   }
   memset(n->buf, 0, n->size);
+
+  memcpy(n->tags, m->tags, n->size);
 
   return n;
 }
@@ -213,8 +215,8 @@ AVRPART * avr_new_part(void)
 
   p = (AVRPART *)MALLOC(sizeof(AVRPART));
   if (p == NULL) {
-    logprintf(LOG_ERR, "out of memory");
-    exit(1);
+    fprintf(stderr, "out of memory\n");
+    exit(EXIT_FAILURE);
   }
 
   memset(p, 0, sizeof(*p));

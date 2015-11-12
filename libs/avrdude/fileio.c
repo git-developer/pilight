@@ -26,11 +26,12 @@
 #include <errno.h>
 #include <ctype.h>
 
-#include "log.h"
+#include "../pilight/core/log.h"
+#include "../pilight/core/mem.h"
+#include "../pilight/core/common.h"
 #include "avrdude.h"
 #include "avr.h"
 #include "fileio.h"
-#include "common.h"
 
 #define IHEX_MAXDATA 256
 #define MAX_LINE_LEN 256  /* max line length for ASCII format input files */
@@ -296,7 +297,7 @@ static int fileio_imm(struct fioparms * fio,
                char * filename, FILE * f, unsigned char * buf, int size)
 {
   int rc = 0;
-  char *e = NULL, *ptr = NULL, **array = NULL;
+  char *e = NULL, **array = NULL;
   unsigned long b = 0;
   int loc = 0;
   unsigned int n = 0, i = 0;
@@ -314,21 +315,14 @@ static int fileio_imm(struct fioparms * fio,
 							strtoul (array[i] + 2, &e, 2);
 					if (*e != 0) {
 						logprintf(LOG_ERR, "invalid byte value (%s) specified for immediate mode", array[i]);
-						unsigned int z = 0;
-						for(z=i;z<n;z++) {
-							FREE(array[z]);
-						}
-						FREE(array);
+						array_free(&array, n);
 						return -1;
 					}
 					buf[loc++] = b;
 					rc = loc;
 				}
-				FREE(array[i]);
       }
-			if(n > 0) {
-				FREE(array);
-			}
+			array_free(&array, n);
       break;
     default:
       logprintf(LOG_ERR, "fileio: invalid operation=%d", fio->op);

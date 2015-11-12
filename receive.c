@@ -22,14 +22,14 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "pilight.h"
-#include "common.h"
-#include "settings.h"
-#include "log.h"
-#include "options.h"
-#include "socket.h"
-#include "ssdp.h"
-#include "gc.h"
+#include "libs/pilight/core/pilight.h"
+#include "libs/pilight/core/common.h"
+#include "libs/pilight/config/settings.h"
+#include "libs/pilight/core/log.h"
+#include "libs/pilight/core/options.h"
+#include "libs/pilight/core/socket.h"
+#include "libs/pilight/core/ssdp.h"
+#include "libs/pilight/core/gc.h"
 
 static int main_loop = 1;
 static int sockfd = 0;
@@ -47,7 +47,6 @@ int main_gc(void) {
 		socket_write(sockfd, "HEART");
 		socket_close(sockfd);
 	}
-	FREE(progname);
 	xfree();
 
 #ifdef _WIN32
@@ -71,9 +70,8 @@ int main(int argc, char **argv) {
 
 	log_level_set(LOG_NOTICE);
 
-	progname = MALLOC(16);
-	if(!progname) {
-		logprintf(LOG_ERR, "out of memory");
+	if((progname = MALLOC(16)) == NULL) {
+		fprintf(stderr, "out of memory\n");
 		exit(EXIT_FAILURE);
 	}
 	strcpy(progname, "pilight-receive");
@@ -117,8 +115,8 @@ int main(int argc, char **argv) {
 				exit(EXIT_SUCCESS);
 			break;
 			case 'S':
-				if(!(server = MALLOC(strlen(args)+1))) {
-					logprintf(LOG_ERR, "out of memory");
+				if((server = MALLOC(strlen(args)+1)) == NULL) {
+					fprintf(stderr, "out of memory\n");
 					exit(EXIT_FAILURE);
 				}
 				strcpy(server, args);
@@ -143,7 +141,7 @@ int main(int argc, char **argv) {
 			return EXIT_FAILURE;
 		}
 	} else if(ssdp_seek(&ssdp_list) == -1) {
-		logprintf(LOG_ERR, "no pilight ssdp connections found");
+		logprintf(LOG_NOTICE, "no pilight ssdp connections found");
 		goto close;
 	} else {
 		if((sockfd = socket_connect(ssdp_list->ip, ssdp_list->port)) == -1) {
@@ -157,6 +155,7 @@ int main(int argc, char **argv) {
 	if(server != NULL) {
 		FREE(server);
 	}
+
 	struct JsonNode *jclient = json_mkobject();
 	struct JsonNode *joptions = json_mkobject();
 	json_append_member(jclient, "action", json_mkstring("identify"));
@@ -190,11 +189,8 @@ int main(int argc, char **argv) {
 			printf("%s\n", content);
 			json_delete(jcontent);
 			json_free(content);
-			FREE(array[i]);
 		}
-		if(n > 0) {
-			FREE(array);
-		}
+		array_free(&array, n);
 	}
 
 close:
@@ -208,5 +204,6 @@ close:
 	options_gc();
 	log_shell_disable();
 	log_gc();
+	FREE(progname);
 	return EXIT_SUCCESS;
 }

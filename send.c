@@ -25,17 +25,22 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "pilight.h"
-#include "common.h"
-#include "config.h"
-#include "log.h"
-#include "options.h"
-#include "socket.h"
-#include "json.h"
-#include "protocol.h"
-#include "wiringX.h"
-#include "ssdp.h"
-#include "dso.h"
+#include "libs/pilight/core/threads.h"
+#include "libs/pilight/core/pilight.h"
+#include "libs/pilight/core/common.h"
+#include "libs/pilight/core/config.h"
+#include "libs/pilight/core/log.h"
+#include "libs/pilight/core/options.h"
+#include "libs/pilight/core/socket.h"
+#include "libs/pilight/core/json.h"
+#include "libs/pilight/core/ssdp.h"
+#include "libs/pilight/core/dso.h"
+
+#include "libs/pilight/protocols/protocol.h"
+
+#ifndef _WIN32
+	#include "libs/wiringx/wiringX.h"
+#endif
 
 typedef struct pname_t {
 	char *name;
@@ -44,9 +49,6 @@ typedef struct pname_t {
 } pname_t;
 
 static struct pname_t *pname = NULL;
-
-void _lognone(int prio, const char *format_str, ...) {
-}
 
 static void sort_list(void) {
 	struct pname_t *a = NULL;
@@ -88,14 +90,17 @@ int main(int argc, char **argv) {
 	// memtrack();
 
 	atomicinit();
-	wiringXLog = _lognone;
 
 	log_file_disable();
 	log_shell_enable();
 	log_level_set(LOG_NOTICE);
 
+#ifndef _WIN32
+	wiringXLog = logprintf;
+#endif
+
 	if((progname = MALLOC(13)) == NULL) {
-		logprintf(LOG_ERR, "out of memory");
+		fprintf(stderr, "out of memory\n");
 		exit(EXIT_FAILURE);
 	}
 	strcpy(progname, "pilight-send");
@@ -104,6 +109,7 @@ int main(int argc, char **argv) {
 	struct ssdp_list_t *ssdp_list = NULL;
 
 	int sockfd = 0;
+	int raw[MAXPULSESTREAMLENGTH-1];
 	char *args = NULL, *recvBuff = NULL;
 
 	/* Hold the name of the protocol */
@@ -145,11 +151,11 @@ int main(int argc, char **argv) {
 		switch(c) {
 			case 'p':
 				if(strlen(args) == 0) {
-					logprintf(LOG_ERR, "options '-p' and '--protocol' require an argument");
+					logprintf(LOG_INFO, "options '-p' and '--protocol' require an argument");
 					exit(EXIT_FAILURE);
 				} else {
-					if(!(protobuffer = REALLOC(protobuffer, strlen(args)+1))) {
-						logprintf(LOG_ERR, "out of memory");
+					if((protobuffer = REALLOC(protobuffer, strlen(args)+1)) == NULL) {
+						fprintf(stderr, "out of memory\n");
 						exit(EXIT_FAILURE);
 					}
 					strcpy(protobuffer, args);
@@ -162,8 +168,8 @@ int main(int argc, char **argv) {
 				help = 1;
 			break;
 			case 'S':
-				if(!(server = REALLOC(server, strlen(args)+1))) {
-					logprintf(LOG_ERR, "out of memory");
+				if((server = REALLOC(server, strlen(args)+1)) == NULL) {
+					fprintf(stderr, "out of memory\n");
 					exit(EXIT_FAILURE);
 				}
 				strcpy(server, args);
@@ -172,8 +178,8 @@ int main(int argc, char **argv) {
 				port = (unsigned short)atoi(args);
 			break;
 			case 'U':
-				if(!(uuid = REALLOC(uuid, strlen(args)+1))) {
-					logprintf(LOG_ERR, "out of memory");
+				if((uuid = REALLOC(uuid, strlen(args)+1)) == NULL) {
+					fprintf(stderr, "out of memory\n");
 					exit(EXIT_FAILURE);
 				}
 				strcpy(uuid, args);
@@ -267,17 +273,17 @@ int main(int argc, char **argv) {
 					struct protocol_devices_t *tmpdev = protocol->devices;
 					while(tmpdev) {
 						struct pname_t *node = MALLOC(sizeof(struct pname_t));
-						if(!node) {
-							logprintf(LOG_ERR, "out of memory");
+						if(node == NULL) {
+							fprintf(stderr, "out of memory\n");
 							exit(EXIT_FAILURE);
 						}
-						if(!(node->name = MALLOC(strlen(tmpdev->id)+1))) {
-							logprintf(LOG_ERR, "out of memory");
+						if((node->name = MALLOC(strlen(tmpdev->id)+1)) == NULL) {
+							fprintf(stderr, "out of memory\n");
 							exit(EXIT_FAILURE);
 						}
 						strcpy(node->name, tmpdev->id);
-						if(!(node->desc = MALLOC(strlen(tmpdev->desc)+1))) {
-							logprintf(LOG_ERR, "out of memory");
+						if((node->desc = MALLOC(strlen(tmpdev->desc)+1)) == NULL) {
+							fprintf(stderr, "out of memory\n");
 							exit(EXIT_FAILURE);
 						}
 						strcpy(node->desc, tmpdev->desc);
@@ -320,12 +326,7 @@ int main(int argc, char **argv) {
 			    && tmp->vartype == JSON_STRING && tmp->string_ != NULL
 				&& (strlen(tmp->string_) > 0)) {
 				if(isNumeric(tmp->string_) == 0) {
-					char *ptr = strstr(tmp->string_, ".");
-					int decimals = 0;
-					if(ptr != NULL) {
-						decimals = (int)(strlen(tmp->string_)-((size_t)(ptr-tmp->string_)+1));
-					}
-					json_append_member(code, tmp->name, json_mknumber(atof(tmp->string_), decimals));
+					json_append_member(code, tmp->name, json_mknumber(atof(tmp->string_), nrDecimals(tmp->string_)));
 				} else {
 					json_append_member(code, tmp->name, json_mkstring(tmp->string_));
 				}
@@ -339,6 +340,8 @@ int main(int argc, char **argv) {
 		tmp = tmp->next;
 	}
 
+	memset(raw, 0, MAXPULSESTREAMLENGTH-1);
+	protocol->raw = raw;
 	if(protocol->createCode(code) == 0) {
 		if(protocol->message) {
 			json_delete(protocol->message);
@@ -349,7 +352,7 @@ int main(int argc, char **argv) {
 				goto close;
 			}
 		} else if(ssdp_seek(&ssdp_list) == -1) {
-			logprintf(LOG_ERR, "no pilight ssdp connections found");
+			logprintf(LOG_NOTICE, "no pilight ssdp connections found");
 			goto close;
 		} else {
 			if((sockfd = socket_connect(ssdp_list->ip, ssdp_list->port)) == -1) {

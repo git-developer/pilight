@@ -27,15 +27,19 @@
 #include <math.h>
 #include <string.h>
 
-#include "pilight.h"
-#include "gc.h"
-#include "common.h"
-#include "action.h"
-#include "operator.h"
-#include "log.h"
-#include "options.h"
-#include "firmware.h"
-#include "wiringX.h"
+#include "libs/pilight/core/threads.h"
+#include "libs/pilight/core/pilight.h"
+#include "libs/pilight/core/gc.h"
+#include "libs/pilight/core/common.h"
+#include "libs/pilight/core/log.h"
+#include "libs/pilight/core/options.h"
+#include "libs/pilight/core/firmware.h"
+
+#include "libs/pilight/events/events.h"
+
+#ifndef _WIN32
+	#include "libs/wiringx/wiringX.h"
+#endif
 
 int main(int argc, char **argv) {
 	// memtrack();
@@ -43,20 +47,23 @@ int main(int argc, char **argv) {
 	atomicinit();
 	log_shell_enable();
 	log_file_disable();
-	log_level_set(LOG_DEBUG);
 
+#ifndef _WIN32
 	wiringXLog = logprintf;
+#endif
 
 	struct options_t *options = NULL;
 	char *configtmp = MALLOC(strlen(CONFIG_FILE)+1);
 	char *args = NULL;
 	char *fwfile = NULL;
+	char comport[255];
+
+	memset(&comport, '\0', 255);
 
 	strcpy(configtmp, CONFIG_FILE);
 
-	progname = MALLOC(15);
-	if(!progname) {
-		logprintf(LOG_ERR, "out of memory");
+	if((progname = MALLOC(15)) == NULL) {
+		fprintf(stderr, "out of memory\n");
 		exit(EXIT_FAILURE);
 	}
 	strcpy(progname, "pilight-flash");
@@ -65,6 +72,7 @@ int main(int argc, char **argv) {
 	options_add(&options, 'V', "version", OPTION_NO_VALUE, 0, JSON_NULL, NULL, NULL);
 	options_add(&options, 'C', "config", OPTION_HAS_VALUE, 0, JSON_NULL, NULL, NULL);
 	options_add(&options, 'f', "file", OPTION_HAS_VALUE, 0, JSON_NULL, NULL, NULL);
+	options_add(&options, 'p', "comport", OPTION_HAS_VALUE, 0, JSON_NULL, NULL, NULL);
 
 	while (1) {
 		int c;
@@ -78,7 +86,8 @@ int main(int argc, char **argv) {
 				printf("Usage: %s [options]\n", progname);
 				printf("\t -H --help\t\tdisplay usage summary\n");
 				printf("\t -V --version\t\tdisplay version\n");
-				printf("\t -C --config\t\t\tconfig file\n");
+				printf("\t -C --config\t\tconfig file\n");
+				printf("\t -p --comport\t\tserial COM port\n");
 				printf("\t -f --file=firmware\tfirmware file\n");
 				goto close;
 			break;
@@ -89,6 +98,9 @@ int main(int argc, char **argv) {
 			case 'C':
 				configtmp = REALLOC(configtmp, strlen(args)+1);
 				strcpy(configtmp, args);
+			break;
+			case 'p':
+				strcpy(comport, args);
 			break;
 			case 'f':
 				if(access(args, F_OK) != -1) {
@@ -106,7 +118,6 @@ int main(int argc, char **argv) {
 		}
 	}
 
-#if defined(FIRMWARE_UPDATER) && !defined(_WIN32)
 	if(config_set_file(configtmp) == EXIT_FAILURE) {
 		goto close;
 	}
@@ -118,26 +129,28 @@ int main(int argc, char **argv) {
 		goto close;
 	}
 
-	if(fwfile == NULL || strlen(fwfile) == 0) {
-		printf("Usage: %s -f pilight_firmware_tX5_vX.hex\n", progname);
+#ifdef _WIN32
+	if(fwfile == NULL || strlen(fwfile) == 0 || strlen(comport) == 0) {
+		printf("Usage: %s -f pilight_firmware_XXX_vX.hex -p comX\n", progname);
 		goto close;
 	}
+#else
+	if(fwfile == NULL || strlen(fwfile) == 0) {
+		printf("Usage: %s -f pilight_firmware_XXX_vX.hex\n", progname);
+		goto close;
+	}
+#endif
 
+	log_level_set(LOG_DEBUG);
 	firmware.version = 0;
 	logprintf(LOG_INFO, "**** START UPD. FW ****");
-	firmware_getmp();
-	if(firmware_update(fwfile) != 0) {
+	firmware_getmp(comport);
+
+	if(firmware_update(fwfile, comport) != 0) {
 		logprintf(LOG_INFO, "**** FAILED UPD. FW ****");
 	} else {
 		logprintf(LOG_INFO, "**** DONE UPD. FW ****");
 	}
-#else
-	#ifdef _WIN32
-		logprintf(LOG_ERR, "firmware flashing is not supported on Windows");
-	#else
-		logprintf(LOG_ERR, "pilight was compiled without firmware flashing support");
-	#endif
-#endif
 
 close:
 	log_shell_disable();
@@ -153,8 +166,9 @@ close:
 	config_gc();
 	protocol_gc();
 	options_gc();
-	event_operator_gc();
-	event_action_gc();
+#ifdef EVENTS
+	events_gc();
+#endif
 #ifndef _WIN32
 	wiringXGC();
 #endif
