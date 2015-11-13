@@ -224,11 +224,6 @@ if(NOT WIN32)
 
 	set(CMAKE_UNWIND_LIBS_INIT)
 
-	if(${PROTOCOL_ELRO_FA20RF} MATCHES "OFF")
-    		list(REMOVE_ITEM pilight_headers "${PROJECT_SOURCE_DIR}/libs/protocols/elro_ra20rf.h")
-		list(REMOVE_ITEM pilight "${PROJECT_SOURCE_DIR}/libs/protocols/elro_ra20rf.c")
-	endif()
-
 	if(NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^mips")
 		find_library(CMAKE_UNWIND_LIBS_INIT
 		NAME unwind
