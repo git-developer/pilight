@@ -474,9 +474,9 @@ void alpha_random(char *s, const int len) {
 int urldecode(const char *s, char *dec) {
 	logprintf(LOG_STACK, "%s(...)", __FUNCTION__);
 
-	char *o;
+	char *o = NULL;
 	const char *end = s + strlen(s);
-	int c;
+	int c = 0;
 
 	for(o = dec; s <= end; o++) {
 		c = *s++;
@@ -991,4 +991,31 @@ int stricmp(char const *a, char const *b) {
 			if(d != 0 || !*a)
 				return d;
 	}
+}
+
+int file_get_contents(char *file, char **content) {
+	FILE *fp = NULL;
+	size_t bytes = 0;
+	struct stat st;
+
+	if((fp = fopen(file, "rb")) == NULL) {
+		logprintf(LOG_ERR, "cannot open file: %s", file);
+		return -1;
+	}
+
+	fstat(fileno(fp), &st);
+	bytes = (size_t)st.st_size;
+
+	if((*content = CALLOC(bytes+1, sizeof(char))) == NULL) {
+		fprintf(stderr, "out of memory\n");
+		fclose(fp);
+		exit(EXIT_FAILURE);
+	}
+
+	if(fread(*content, sizeof(char), bytes, fp) == -1) {
+		logprintf(LOG_ERR, "cannot read file: %s", file);
+		return -1;
+	}
+	fclose(fp);
+	return 0;
 }
